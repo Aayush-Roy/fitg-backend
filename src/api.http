@@ -1,0 +1,255 @@
+@baseUrl = http://localhost:5000/api
+@contentType = application/json
+@userToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTU4ZTcwMzViM2IzMmNmZmZmOTU4NDkiLCJpYXQiOjE3Njc0MzM5ODgsImV4cCI6MTc2ODAzODc4OH0.gs-jOST3rx1rQfBhuVkm3RlW8rMHdCpji1-xytP5ONE
+GET {{baseUrl}}/health HTTP/1.1
+
+### 2. REGISTER NORMAL USER
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "John Doe",
+  "email": "john3@example.com",
+  "password": "123456",
+  "age": 25,
+  "height": 175,
+  "weight": 70,
+  "goal": "muscle_gain"
+}
+
+### 3. REGISTER ADMIN USER (SECRET ENDPOINT)
+# @name adminRegister
+POST {{baseUrl}}/auth/admin/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Gym Owner",
+  "email": "admin@gym.com",
+  "password": "admin123",
+  "secretKey": "ADMIN_SECRET_123"
+}
+
+### 4. LOGIN AS ADMIN
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@gym.com",
+  "password": "admin123"
+}
+
+### 5. SAVE ADMIN TOKEN
+@adminToken = {{adminLogin.response.body.data.token}}
+
+### 6. LOGIN AS NORMAL USER
+# @name userLogin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john@example.com",
+  "password": "123456"
+}
+
+### 7. SAVE USER TOKEN
+@userToken = {{userLogin.response.body.data.token}}
+
+### 8. GET ADMIN PROFILE
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{adminToken}}x
+
+### 9. GET USER PROFILE
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{userToken}}
+
+### 10. CREATE WORKOUT PLAN (ADMIN ONLY - SHOULD WORK)
+POST {{baseUrl}}/workout/plans
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTUyMjBlMjFlMTA1NzllMzNhNjFjZDUiLCJpYXQiOjE3Njc2MDcwOTgsImV4cCI6MTc2ODIxMTg5OH0.LJ8q7pc2Nwq7ulzS3w3W4bhPeKHQqjaKIRPyIwrFVm4
+Content-Type: {{contentType}}
+
+{
+  "name": "Advanced Strength Training",
+  "description": "Heavy lifting for advanced users",
+  "difficulty": "advanced",
+  "exercises": [
+    {
+      "name": "Deadlift",
+      "sets": 4,
+      "reps": 5,
+      "restTime": 120
+    },
+    {
+      "name": "Bench Press",
+      "sets": 4,
+      "reps": 6,
+      "restTime": 90
+    },
+    {
+      "name": "Pull-ups",
+      "sets": 3,
+      "reps": 8,
+      "restTime": 60
+    }
+  ]
+}
+
+### 11. CREATE WORKOUT PLAN WITH USER TOKEN (SHOULD FAIL - NOT ADMIN)
+POST {{baseUrl}}/workout/plans
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Should Fail Plan",
+  "description": "This should fail",
+  "difficulty": "beginner",
+  "exercises": []
+}
+
+### 12. GET ALL USERS (ADMIN ONLY - SHOULD WORK)
+GET {{baseUrl}}/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTUyMjBlMjFlMTA1NzllMzNhNjFjZDUiLCJpYXQiOjE3NjY5OTAwNTEsImV4cCI6MTc2NzU5NDg1MX0.MdCqgmCjI_uCEyDRVx8xuYIvwnKvyOSlTy8a1tHvG8k
+
+### 13. GET ALL USERS WITH USER TOKEN (SHOULD FAIL)
+GET {{baseUrl}}/users
+Authorization: Bearer {{userToken}}
+
+### 14. CREATE DIET PLAN (ADMIN ONLY)
+POST {{baseUrl}}/diet/plans
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTUyMjBlMjFlMTA1NzllMzNhNjFjZDUiLCJpYXQiOjE3NjY5OTAwNTEsImV4cCI6MTc2NzU5NDg1MX0.MdCqgmCjI_uCEyDRVx8xuYIvwnKvyOSlTy8a1tHvG8k
+Content-Type: {{contentType}}
+
+{
+  "name": "Muscle Gain Diet Plan",
+  "description": "High protein diet for muscle building",
+  "calories": 3000,
+  "meals": [
+    {
+      "name": "Breakfast",
+      "time": "08:00 AM",
+      "foods": ["Oats", "Eggs", "Banana", "Milk"]
+    },
+    {
+      "name": "Lunch",
+      "time": "01:00 PM",
+      "foods": ["Chicken Breast", "Brown Rice", "Broccoli", "Salad"]
+    },
+    {
+      "name": "Dinner",
+      "time": "07:00 PM",
+      "foods": ["Fish", "Sweet Potato", "Green Vegetables"]
+    }
+  ]
+}
+
+### 15. GET ALL DIET PLANS (PUBLIC)
+GET {{baseUrl}}/diet/plans
+
+### 16. TEST ADMIN MIDDLEWARE - UPDATE USER (ADMIN CAN UPDATE ANY USER)
+# First get a user ID from response of GET /api/users
+@userId = 657a1b2c3d4e5f6a7b8c9d0e
+PUT {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "goal": "weight_loss",
+  "weight": 68
+}
+
+### 17. CREATE MEMBERSHIP MANUALLY (ADMIN ONLY)
+POST {{baseUrl}}/membership
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "userId": "{{userId}}",
+  "planType": "yearly",
+  "endDate": "2025-01-15T10:30:00.000Z"
+}
+
+### 18. CHECK ADMIN'S MEMBERSHIP
+GET {{baseUrl}}/membership/current
+Authorization: Bearer {{adminToken}}
+
+### 19. CHECK USER'S MEMBERSHIP
+GET {{baseUrl}}/membership/current
+Authorization: Bearer {{userToken}}
+
+### 20. ADMIN ATTENDANCE CHECK-IN
+POST {{baseUrl}}/attendance/check-in
+Authorization: Bearer {{adminToken}}
+
+### 21. USER ATTENDANCE CHECK-IN
+POST {{baseUrl}}/attendance/check-in
+Authorization: Bearer {{userToken}}
+
+### 22. GET ALL ATTENDANCE (ADMIN VIEW - Need to implement)
+# Note: Currently no endpoint for admin to view all attendance
+# You would need to add this
+
+### 23. ADMIN PAYMENT HISTORY
+GET {{baseUrl}}/payment/history
+Authorization: Bearer {{adminToken}}
+
+### 24. CREATE PAYMENT ORDER (ADMIN)
+POST {{baseUrl}}/payment/create-order
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OTUyMjI3MzFlMTA1NzllMzNhNjFjZWMiLCJpYXQiOjE3NjY5OTA0NTEsImV4cCI6MTc2NzU5NTI1MX0.5QF56ehvWRIXCLf4OYp3fsSGTCnwoYjxGBFM0ya5wpI
+Content-Type: {{contentType}}
+
+{
+  "planType": "monthly"
+}
+
+### 25. TEST WRONG SECRET KEY FOR ADMIN REGISTER (SHOULD FAIL)
+POST {{baseUrl}}/auth/admin/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Hacker",
+  "email": "hacker@test.com",
+  "password": "hack123",
+  "secretKey": "WRONG_KEY"
+}
+
+### 26. TEST DUPLICATE ADMIN REGISTER (SHOULD FAIL)
+POST {{baseUrl}}/auth/admin/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Duplicate Admin",
+  "email": "admin@gym.com",
+  "password": "admin123",
+  "secretKey": "ADMIN_SECRET_123"
+}
+
+### 27. LIST ALL WORKOUT PLANS (PUBLIC)
+GET {{baseUrl}}/workout/plans
+
+### 28. ASSIGN WORKOUT PLAN (USER)
+# Get workoutPlanId from response of GET /api/workout/plans
+@workoutPlanId = 657a1b2c3d4e5f6a7b8c9d0e
+POST {{baseUrl}}/workout/assign
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "workoutPlanId": "{{workoutPlanId}}"
+}
+
+### 29. ASSIGN WORKOUT PLAN (ADMIN - ADMIN CAN ASSIGN TOO)
+POST {{baseUrl}}/workout/assign
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "workoutPlanId": "{{workoutPlanId}}"
+}
+
+### 30. GET ACTIVE WORKOUT (ADMIN)
+GET {{baseUrl}}/workout/active
+Authorization: Bearer {{adminToken}}
+
+### 31. GET ACTIVE WORKOUT (USER)
+GET {{baseUrl}}/workout/active
+Authorization: Bearer {{userToken}}
